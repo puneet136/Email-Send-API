@@ -13,10 +13,10 @@ public class EmailController {
 
     @Autowired
     private EmailService emailService;
-    @RequestMapping("/welcome")
-    public String welcome(){
-        return "Hello , This is my email Testing API";
-    }
+    // @RequestMapping("/welcome")
+    // public String welcome(){
+    //     return "Hello , This is my email Testing API";
+    // }
     @PostMapping("/sendemail")
     public ResponseEntity<?> sendEmail(@RequestBody EmailRequest request){
         System.out.println(request);
