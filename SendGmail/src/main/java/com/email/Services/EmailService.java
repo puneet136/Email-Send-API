@@ -13,7 +13,7 @@ public class EmailService {
     public boolean sendEmail(String subject , String message , String to){
         //Rest of code...
         boolean flag = false;
-        String from = "puneetagrawalspu@gmail.com";
+        String from = "enter your sender's email";
         String host = "smtp.gmail.com";
 
 		Properties properties = System.getProperties();
@@ -33,7 +33,7 @@ public class EmailService {
 		Session session = Session.getInstance(properties, new Authenticator() {
 			@Override
 			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication("puneetagrawalspu@gmail.com" , "owak lrmb zxey mniw");
+				return new PasswordAuthentication("sender's Email" , "16-digit app password(for authentication)");
 			}
 		});
 		session.setDebug(true);
