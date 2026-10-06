@@ -1,64 +1,37 @@
 package com.email.Services;
 
+import com.email.bulk.provider.EmailProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
-
-import java.util.Properties;
-import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
-
 
 @Service
 public class EmailService {
-    public boolean sendEmail(String subject , String message , String to){
-        //Rest of code...
-        boolean flag = false;
-        String from = "enter your sender's email";
-        String host = "smtp.gmail.com";
 
-		Properties properties = System.getProperties();
+	private static final Logger log =
+			LoggerFactory.getLogger(EmailService.class);
 
-		System.out.println("Properties " + properties);
+	private final EmailProvider emailProvider;
 
-		//Setting important information to properties object
+	public EmailService(EmailProvider emailProvider) {
+		this.emailProvider = emailProvider;
+	}
 
-		//host set
-		properties.put("mail.smtp.host" , host);
-		properties.put("mail.smtp.port" , "465");
-		properties.put("mail.smtp.ssl.enable" , "true");
-		properties.put("mail.smtp.auth" , "true");
+	public boolean sendEmail(
+			String subject,
+			String message,
+			String to) {
 
-		//Step 1:to get the session object
-
-		Session session = Session.getInstance(properties, new Authenticator() {
-			@Override
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication("sender's Email" , "16-digit app password(for authentication)");
-			}
-		});
-		session.setDebug(true);
-		//Step 2 : Compose Message (text , Multi media part)
-		MimeMessage m = new MimeMessage(session);
-		try{
-			//from email id
-			m.setFrom(from);
-
-			//Adding recipient to message
-			m.addRecipient(Message.RecipientType.TO , new InternetAddress(to));
-
-			//Adding subject  to message
-			m.setSubject(subject);
-
-			//Adding Text to message
-			m.setText(message);
-
-			//Send
-			//Step 3 : Send the message using the transport class
-			Transport.send(m);
-            flag = true;
-		}catch (Exception e){
-			e.printStackTrace();
+		try {
+			emailProvider.send(to, subject, message);
+			return true;
+		} catch (MailException exception) {
+			log.warn(
+					"SMTP submission failed or could not be confirmed. Type: {}",
+					exception.getClass().getSimpleName()
+			);
+			return false;
 		}
-        return flag;
-    }
+	}
 }
