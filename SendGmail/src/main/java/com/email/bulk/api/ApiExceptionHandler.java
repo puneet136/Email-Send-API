@@ -5,7 +5,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import com.email.bulk.exception.CampaignNotFoundException;
+import org.springframework.http.HttpStatus;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +56,23 @@ public class ApiExceptionHandler {
             int status,
             String message,
             Map<String, List<String>> errors
+    ) {
+    }
+
+    @ExceptionHandler(CampaignNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleCampaignNotFound(
+            CampaignNotFoundException exception) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorResponse(
+                        404,
+                        exception.getMessage()
+                ));
+    }
+
+    public record ApiErrorResponse(
+            int status,
+            String message
     ) {
     }
 }
