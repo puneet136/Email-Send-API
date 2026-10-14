@@ -8,7 +8,8 @@ import com.email.bulk.api.dto.CampaignDetailResponse;
 import java.util.Optional;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class CampaignRepository {
 
@@ -70,5 +71,81 @@ public class CampaignRepository {
                 ),
                 id
         ).stream().findFirst();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<String> lockStatus(long campaignId) {
+
+        String sql = """
+            SELECT status
+            FROM campaign
+            WHERE id = ?
+            FOR UPDATE
+            """;
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> rs.getString("status"),
+                campaignId
+        ).stream().findFirst();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean hasActiveImports(long campaignId) {
+
+        String sql = """
+            SELECT id
+            FROM recipient_import
+            WHERE campaign_id = ?
+              AND status IN ('QUEUED', 'RUNNING')
+            LIMIT 1
+            FOR UPDATE
+            """;
+
+        return !jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> rs.getLong("id"),
+                campaignId
+        ).isEmpty();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean hasPendingRecipients(long campaignId) {
+
+        String sql = """
+            SELECT id
+            FROM email_job
+            WHERE campaign_id = ?
+              AND status = 'PENDING'
+            LIMIT 1
+            FOR UPDATE
+            """;
+
+        return !jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> rs.getLong("id"),
+                campaignId
+        ).isEmpty();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void markRunning(long campaignId) {
+
+        String sql = """
+            UPDATE campaign
+            SET status = 'RUNNING',
+                started_at = CURRENT_TIMESTAMP(6),
+                completed_at = NULL
+            WHERE id = ?
+              AND status = 'DRAFT'
+            """;
+
+        int updated = jdbcTemplate.update(sql, campaignId);
+
+        if (updated != 1) {
+            throw new IllegalStateException(
+                    "Campaign could not be marked running"
+            );
+        }
     }
 }

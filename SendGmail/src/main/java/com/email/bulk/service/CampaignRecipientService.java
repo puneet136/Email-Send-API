@@ -2,8 +2,6 @@ package com.email.bulk.service;
 
 import com.email.bulk.api.dto.AddRecipientsRequest;
 import com.email.bulk.api.dto.AddRecipientsResponse;
-import com.email.bulk.exception.CampaignNotFoundException;
-import com.email.bulk.repository.CampaignRepository;
 import com.email.bulk.repository.EmailJobRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,14 +11,14 @@ import java.util.Locale;
 @Service
 public class CampaignRecipientService {
 
-    private final CampaignRepository campaignRepository;
+    private final CampaignStateService campaignStateService;
     private final EmailJobRepository emailJobRepository;
 
     public CampaignRecipientService(
-            CampaignRepository campaignRepository,
+            CampaignStateService campaignStateService,
             EmailJobRepository emailJobRepository) {
 
-        this.campaignRepository = campaignRepository;
+        this.campaignStateService = campaignStateService;
         this.emailJobRepository = emailJobRepository;
     }
 
@@ -29,10 +27,7 @@ public class CampaignRecipientService {
             long campaignId,
             AddRecipientsRequest request) {
 
-        campaignRepository.findById(campaignId)
-                .orElseThrow(
-                        () -> new CampaignNotFoundException(campaignId)
-                );
+        campaignStateService.lockAndRequireDraft(campaignId);
 
         int added = 0;
         int duplicates = 0;

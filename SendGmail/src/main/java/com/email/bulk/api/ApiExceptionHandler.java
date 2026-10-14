@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import com.email.bulk.exception.InvalidImportFileException;
 import com.email.bulk.exception.RecipientImportNotFoundException;
+import com.email.bulk.exception.CampaignConflictException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -97,6 +98,17 @@ public class ApiExceptionHandler {
                 .status(HttpStatus.NOT_FOUND)
                 .body(new ApiErrorResponse(
                         HttpStatus.NOT_FOUND.value(),
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(CampaignConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleCampaignConflict(
+            CampaignConflictException exception) {
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiErrorResponse(
+                        HttpStatus.CONFLICT.value(),
                         exception.getMessage()
                 ));
     }

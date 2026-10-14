@@ -30,16 +30,19 @@ public class RecipientImportService {
     private final RecipientImportRepository importRepository;
     private final ImportFileStorage fileStorage;
     private final TransactionTemplate transactionTemplate;
+    private final CampaignStateService campaignStateService;
 
     public RecipientImportService(
             CampaignRepository campaignRepository,
             RecipientImportRepository importRepository,
             ImportFileStorage fileStorage,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            CampaignStateService campaignStateService) {
 
         this.campaignRepository = campaignRepository;
         this.importRepository = importRepository;
         this.fileStorage = fileStorage;
+        this.campaignStateService = campaignStateService;
 
         this.transactionTemplate =
                 new TransactionTemplate(transactionManager);
@@ -55,6 +58,7 @@ public class RecipientImportService {
 
         String originalFilename = validateFile(file);
 
+        // Early existence check before storing the uploaded file.
         campaignRepository.findById(campaignId)
                 .orElseThrow(
                         () -> new CampaignNotFoundException(campaignId)
@@ -75,9 +79,11 @@ public class RecipientImportService {
 
                                 if (status == STATUS_ROLLED_BACK) {
                                     cleanupFile(storedFilename);
+
                                 } else if (status == STATUS_UNKNOWN) {
                                     log.error(
-                                            "Transaction outcome unknown; retained file {}",
+                                            "Transaction outcome unknown; "
+                                                    + "retained file {}",
                                             storedFilename
                                     );
                                 }
@@ -86,6 +92,9 @@ public class RecipientImportService {
                 );
 
                 cleanupRegistered.set(true);
+
+                // Authoritative check inside the registration transaction.
+                campaignStateService.lockAndRequireDraft(campaignId);
 
                 long importId = importRepository.insert(
                         campaignId,
