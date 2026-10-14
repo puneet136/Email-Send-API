@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.email.bulk.exception.InvalidImportFileException;
+import com.email.bulk.exception.RecipientImportNotFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -70,9 +72,33 @@ public class ApiExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(InvalidImportFileException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImportFile(
+            InvalidImportFileException exception) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiErrorResponse(
+                        400,
+                        exception.getMessage()
+                ));
+    }
+
     public record ApiErrorResponse(
             int status,
             String message
     ) {
     }
+
+    @ExceptionHandler(RecipientImportNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleImportNotFound(
+            RecipientImportNotFoundException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorResponse(
+                        HttpStatus.NOT_FOUND.value(),
+                        exception.getMessage()
+                ));
+    }
+
 }
