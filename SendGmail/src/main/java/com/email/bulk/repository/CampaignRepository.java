@@ -10,6 +10,11 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import com.email.bulk.api.dto.CampaignProgressResponse;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 @Repository
 public class CampaignRepository {
 
@@ -147,5 +152,73 @@ public class CampaignRepository {
                     "Campaign could not be marked running"
             );
         }
+    }
+
+    public Optional<CampaignProgressResponse> findProgress(long campaignId) {
+
+        String sql = """
+            SELECT
+                c.id AS campaign_id,
+                c.status AS campaign_status,
+                COUNT(j.id) AS total_recipients,
+                COALESCE(SUM(
+                    CASE WHEN j.status = 'PENDING' THEN 1 ELSE 0 END
+                ), 0) AS pending_count,
+                COALESCE(SUM(
+                    CASE WHEN j.status = 'SENDING' THEN 1 ELSE 0 END
+                ), 0) AS sending_count,
+                COALESCE(SUM(
+                    CASE WHEN j.status = 'RETRY' THEN 1 ELSE 0 END
+                ), 0) AS retry_count,
+                COALESCE(SUM(
+                    CASE WHEN j.status = 'SENT' THEN 1 ELSE 0 END
+                ), 0) AS sent_count,
+                COALESCE(SUM(
+                    CASE WHEN j.status = 'FAILED' THEN 1 ELSE 0 END
+                ), 0) AS failed_count
+            FROM campaign c
+            LEFT JOIN email_job j ON j.campaign_id = c.id
+            WHERE c.id = ?
+            GROUP BY c.id, c.status
+            """;
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> {
+
+                    long total = rs.getLong("total_recipients");
+                    long pending = rs.getLong("pending_count");
+                    long sending = rs.getLong("sending_count");
+                    long retry = rs.getLong("retry_count");
+                    long sent = rs.getLong("sent_count");
+                    long failed = rs.getLong("failed_count");
+
+                    long processed = sent + failed;
+
+                    BigDecimal progressPercent = total == 0
+                            ? BigDecimal.ZERO.setScale(2)
+                            : BigDecimal.valueOf(processed)
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(
+                                    BigDecimal.valueOf(total),
+                                    2,
+                                    RoundingMode.HALF_UP
+                            );
+
+                    return new CampaignProgressResponse(
+                            rs.getLong("campaign_id"),
+                            rs.getString("campaign_status"),
+                            total,
+                            pending,
+                            sending,
+                            retry,
+                            sent,
+                            failed,
+                            processed,
+                            progressPercent
+                    );
+                },
+                campaignId
+        ).stream().findFirst();
     }
 }
