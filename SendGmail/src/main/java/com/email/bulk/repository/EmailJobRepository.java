@@ -77,16 +77,16 @@ public class EmailJobRepository {
         );
 
         String sql = """
-            INSERT INTO email_job (
-                campaign_id,
-                recipient_email,
-                status,
-                attempt_count
-            )
-            VALUES
-            """ + placeholders + """
-            ON DUPLICATE KEY UPDATE id = id
-            """;
+        INSERT INTO email_job (
+            campaign_id,
+            recipient_email,
+            status,
+            attempt_count
+        )
+        VALUES
+        """ + placeholders + """
+        ON DUPLICATE KEY UPDATE recipient_email = recipient_email
+        """;
 
         List<Object> parameters =
                 new ArrayList<>(normalizedEmails.size() * 2);
