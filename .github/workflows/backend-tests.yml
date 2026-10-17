@@ -1,0 +1,67 @@
+name: Backend Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Java 25 and MySQL tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: SendGmail
+
+    env:
+      TEST_DB_PASSWORD: ci_test_password
+      APP_IMPORT_WORKER_ENABLED: "false"
+      APP_EMAIL_WORKER_ENABLED: "false"
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: bulkemailtest
+          MYSQL_USER: bulk_email_test_user
+          MYSQL_PASSWORD: ci_test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: SendGmail/pom.xml
+
+      - name: Run tests and package application
+        run: bash ./mvnw --batch-mode --no-transfer-progress verify
+
+      - name: Show test summaries
+        if: always()
+        run: |
+          if [ -d target/surefire-reports ]; then
+            grep -h "Tests run:" target/surefire-reports/*.txt || true
+          fi
