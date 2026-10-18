@@ -829,3 +829,68 @@ h1 {
     padding: 18px;
   }
 }
+.campaign-list-panel {
+  margin-bottom: 28px;
+}
+
+.campaign-list-content {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.campaign-table-scroll {
+  overflow-x: auto;
+}
+
+.campaign-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.campaign-table caption {
+  padding-bottom: 16px;
+  color: #586c63;
+  text-align: left;
+  font-size: 14px;
+}
+
+.campaign-table th,
+.campaign-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #e1e8e4;
+  vertical-align: middle;
+}
+
+.campaign-table th {
+  color: #586c63;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.campaign-table td {
+  overflow-wrap: anywhere;
+}
+
+.campaign-table td:last-child {
+  min-width: 170px;
+}
+
+.campaign-table .pill {
+  white-space: nowrap;
+}
+
+.campaign-table tbody tr:hover {
+  background: #f6f8f7;
+}
+
+@media (max-width: 760px) {
+  .campaign-list-content {
+    padding: 16px;
+  }
+
+  .campaign-table {
+    min-width: 680px;
+  }
+}

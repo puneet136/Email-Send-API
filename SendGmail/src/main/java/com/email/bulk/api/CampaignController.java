@@ -3,6 +3,7 @@ package com.email.bulk.api;
 import com.email.bulk.api.dto.AddRecipientsRequest;
 import com.email.bulk.api.dto.AddRecipientsResponse;
 import com.email.bulk.api.dto.CampaignDetailResponse;
+import com.email.bulk.api.dto.CampaignListResponse;
 import com.email.bulk.api.dto.CampaignResponse;
 import com.email.bulk.api.dto.CreateCampaignRequest;
 import com.email.bulk.service.CampaignRecipientService;
@@ -38,11 +39,25 @@ public class CampaignController {
                 .body(response);
     }
 
+    @GetMapping
+    public ResponseEntity<CampaignListResponse> list(
+            @RequestParam(name = "beforeId", defaultValue = "0")
+            long beforeId,
+            @RequestParam(name = "limit", defaultValue = "20")
+            int limit) {
+
+        return ResponseEntity.ok(
+                campaignService.list(beforeId, limit)
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CampaignDetailResponse> getById(
             @PathVariable("id") long id) {
 
-        return ResponseEntity.ok(campaignService.getById(id));
+        return ResponseEntity.ok(
+                campaignService.getById(id)
+        );
     }
 
     @PostMapping("/{id}/recipients")

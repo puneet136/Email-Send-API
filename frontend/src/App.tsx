@@ -4,6 +4,7 @@ import { createCampaign } from './api/campaigns'
 import type { CampaignResponse } from './api/campaigns'
 import RecipientImportPanel from './components/RecipientImportPanel'
 import CampaignDeliveryPanel from './components/CampaignDeliveryPanel'
+import CampaignListPanel from './components/CampaignListPanel'
 import './App.css'
 
 type Page = 'overview' | 'compose'
@@ -135,10 +136,11 @@ function App() {
 
     async function handleOpenCampaign(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
+        await openCampaignById(Number(campaignIdToOpen))
+    }
 
+    async function openCampaignById(id: number) {
         if (openInFlight.current || saveInFlight.current) return
-
-        const id = Number(campaignIdToOpen)
 
         if (!Number.isSafeInteger(id) || id <= 0) {
             setOpenError('Enter a valid campaign ID.')
@@ -183,10 +185,10 @@ function App() {
                 throw new Error('Campaign response has unexpected fields.')
             }
 
-            // Draft, running and completed campaigns can all be opened.
             setName(data.name)
             setSubject(data.subject)
             setMessage(data.message)
+            setCampaignIdToOpen(String(id))
 
             setSavedCampaign({
                 id,
@@ -296,6 +298,12 @@ function App() {
                 </header>
 
                 <main id="main-content" tabIndex={-1}>
+                    {page === 'overview' && (
+                        <CampaignListPanel
+                            opening={busy}
+                            onOpen={(id) => void openCampaignById(id)}
+                        />
+                    )}
                     {page === 'overview' ? (
                         <>
                             <div className="page-heading">
@@ -455,7 +463,7 @@ function App() {
                                                 {' / '}
                                                 Current status: {savedCampaign.status}
                                                 <br />
-                                                Full campaign history is not available here yet.
+                                                Browse your saved campaigns in the list above.
                                             </p>
 
                                             <button

@@ -11,6 +11,8 @@ import java.sql.Statement;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.email.bulk.api.dto.CampaignProgressResponse;
+import com.email.bulk.api.dto.CampaignListItemResponse;
+import java.util.List;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -220,5 +222,44 @@ public class CampaignRepository {
                 },
                 campaignId
         ).stream().findFirst();
+    }
+
+    public List<CampaignListItemResponse> findPage(
+            long beforeId,
+            int fetchLimit) {
+
+        if (beforeId < 0) {
+            throw new IllegalArgumentException(
+                    "Campaign cursor must not be negative"
+            );
+        }
+
+        if (fetchLimit < 1 || fetchLimit > 101) {
+            throw new IllegalArgumentException(
+                    "Fetch limit must be between 1 and 101"
+            );
+        }
+
+        String sql = """
+            SELECT id, name, subject, status
+            FROM campaign
+            """
+                + (beforeId == 0 ? "" : " WHERE id < ? ")
+                + " ORDER BY id DESC LIMIT ?";
+
+        Object[] parameters = beforeId == 0
+                ? new Object[]{fetchLimit}
+                : new Object[]{beforeId, fetchLimit};
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> new CampaignListItemResponse(
+                        rs.getLong("id"),
+                        rs.getString("name"),
+                        rs.getString("subject"),
+                        rs.getString("status")
+                ),
+                parameters
+        );
     }
 }
