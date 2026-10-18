@@ -15,6 +15,7 @@ import com.email.bulk.exception.InvalidImportFileException;
 import com.email.bulk.exception.RecipientImportNotFoundException;
 import com.email.bulk.exception.CampaignConflictException;
 import com.email.bulk.exception.InvalidCampaignListRequestException;
+import com.email.bulk.exception.InvalidImportHistoryRequestException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -117,6 +118,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidCampaignListRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidCampaignListRequest(
             InvalidCampaignListRequestException exception) {
+
+        return ResponseEntity.badRequest()
+                .body(new ApiErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InvalidImportHistoryRequestException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImportHistoryRequest(
+            InvalidImportHistoryRequestException exception) {
 
         return ResponseEntity.badRequest()
                 .body(new ApiErrorResponse(

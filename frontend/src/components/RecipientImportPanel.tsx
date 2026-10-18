@@ -9,6 +9,7 @@ import type { ImportRowError, ImportStatus } from '../api/imports'
 
 type Props = {
     campaignId: number
+    initialImportId?: number
 }
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
@@ -18,11 +19,16 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Request failed.'
 }
 
-export default function RecipientImportPanel({ campaignId }: Props) {
+export default function RecipientImportPanel({
+                                                 campaignId,
+                                                 initialImportId,
+                                             }: Props) {
     const [file, setFile] = useState<File | null>(null)
     const [uploading, setUploading] = useState(false)
     const [uploadError, setUploadError] = useState('')
-    const [importId, setImportId] = useState<number | null>(null)
+    const [importId, setImportId] = useState<number | null>(
+        initialImportId ?? null,
+    )
 
     const [status, setStatus] = useState<ImportStatus | null>(null)
     const [statusError, setStatusError] = useState('')
@@ -180,12 +186,22 @@ export default function RecipientImportPanel({ campaignId }: Props) {
     const finished =
         status !== null && TERMINAL_STATUSES.has(status.status)
 
+    const titleId =
+        `import-title-${campaignId}-${initialImportId ?? 'upload'}`
+
     return (
-        <section className="panel import-panel" aria-labelledby="import-title">
+        <section
+            className="panel import-panel"
+            aria-labelledby={titleId}
+        >
             <div className="panel-heading">
                 <div>
                     <p className="eyebrow">STEP 02 · RECIPIENTS</p>
-                    <h2 id="import-title">Upload your recipient list</h2>
+                    <h2 id={titleId}>
+                        {initialImportId === undefined
+                            ? 'Upload your recipient list'
+                            : 'Import details'}
+                    </h2>
                 </div>
                 <span className="subtle-label">Campaign #{campaignId}</span>
             </div>

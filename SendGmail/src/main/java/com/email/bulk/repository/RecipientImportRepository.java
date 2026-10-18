@@ -452,4 +452,59 @@ public class RecipientImportRepository {
 
         return true;
     }
+
+    public List<RecipientImportStatusResponse> findHistory(
+            long campaignId,
+            long beforeId,
+            int fetchLimit) {
+
+        if (beforeId < 0) {
+            throw new IllegalArgumentException(
+                    "Import cursor must not be negative"
+            );
+        }
+
+        if (fetchLimit < 1 || fetchLimit > 101) {
+            throw new IllegalArgumentException(
+                    "Fetch limit must be between 1 and 101"
+            );
+        }
+
+        String sql = """
+            SELECT
+                id,
+                campaign_id,
+                original_filename,
+                status,
+                processed_rows,
+                added_rows,
+                duplicate_rows,
+                invalid_rows,
+                last_error
+            FROM recipient_import
+            WHERE campaign_id = ?
+            """
+                + (beforeId == 0 ? "" : " AND id < ? ")
+                + " ORDER BY id DESC LIMIT ?";
+
+        Object[] parameters = beforeId == 0
+                ? new Object[]{campaignId, fetchLimit}
+                : new Object[]{campaignId, beforeId, fetchLimit};
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> new RecipientImportStatusResponse(
+                        rs.getLong("id"),
+                        rs.getLong("campaign_id"),
+                        rs.getString("original_filename"),
+                        rs.getString("status"),
+                        rs.getLong("processed_rows"),
+                        rs.getLong("added_rows"),
+                        rs.getLong("duplicate_rows"),
+                        rs.getLong("invalid_rows"),
+                        rs.getString("last_error")
+                ),
+                parameters
+        );
+    }
 }

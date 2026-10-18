@@ -103,3 +103,24 @@ export async function getImportErrors(
 
     return readResponse<ImportErrorPage>(response)
 }
+
+export type ImportHistoryPage = {
+    campaignId: number
+    imports: ImportStatus[]
+    hasMore: boolean
+    nextBeforeId: number
+}
+
+export async function getImportHistory(
+    campaignId: number,
+    beforeId: number,
+    signal: AbortSignal,
+): Promise<ImportHistoryPage> {
+    const response = await fetch(
+        `/api/v1/campaigns/${campaignId}/imports` +
+        `?beforeId=${beforeId}&limit=20`,
+        { signal, cache: 'no-store' },
+    )
+
+    return readResponse<ImportHistoryPage>(response)
+}

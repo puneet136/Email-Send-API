@@ -5,6 +5,7 @@ import type { CampaignResponse } from './api/campaigns'
 import RecipientImportPanel from './components/RecipientImportPanel'
 import CampaignDeliveryPanel from './components/CampaignDeliveryPanel'
 import CampaignListPanel from './components/CampaignListPanel'
+import RecipientImportHistoryPanel from './components/RecipientImportHistoryPanel'
 import './App.css'
 
 type Page = 'overview' | 'compose'
@@ -728,6 +729,11 @@ function App() {
                                     campaignId={savedCampaign.id}
                                 />
                             )}
+
+                            <RecipientImportHistoryPanel
+                                key={`history-${savedCampaign.id}`}
+                                campaignId={savedCampaign.id}
+                            />
 
                             <CampaignDeliveryPanel
                                 key={`delivery-${savedCampaign.id}`}
