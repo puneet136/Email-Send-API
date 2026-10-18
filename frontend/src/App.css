@@ -894,3 +894,46 @@ h1 {
     min-width: 680px;
   }
 }
+.dashboard-notice {
+    margin-bottom: 20px;
+}
+
+.draft-reminder {
+    margin-bottom: 20px;
+    border: 1px solid #e4d5a8;
+    background: #fff9e9;
+    color: #685423;
+}
+
+.campaign-id-panel {
+    margin-bottom: 28px;
+}
+
+.campaign-id-panel > summary {
+    padding: 20px 24px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #264d3f;
+}
+
+.campaign-id-panel > summary:focus-visible {
+    outline: 2px solid #247558;
+    outline-offset: -4px;
+    border-radius: 12px;
+}
+
+.campaign-id-panel[open] > summary {
+    border-bottom: 1px solid #e1e8e4;
+}
+
+.campaign-id-panel .editor {
+    padding: 24px;
+}
+
+.campaign-id-panel input {
+    max-width: 320px;
+}
+
+.page-heading h1 {
+    overflow-wrap: anywhere;
+}

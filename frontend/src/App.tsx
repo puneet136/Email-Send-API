@@ -35,6 +35,9 @@ function App() {
     const openInFlight = useRef(false)
 
     const busy = isSaving || openingCampaign
+    const hasUnsavedDraft =
+        savedCampaign === null &&
+        (name.length > 0 || subject.length > 0 || message.length > 0)
 
     const handleCampaignStatusChange = useCallback(
         (campaignId: number, status: string) => {
@@ -126,7 +129,7 @@ function App() {
             return
         }
 
-        // Preserve an existing unsaved draft.
+        setOpenError('')
         setPage('compose')
     }
 
@@ -145,6 +148,15 @@ function App() {
 
         if (!Number.isSafeInteger(id) || id <= 0) {
             setOpenError('Enter a valid campaign ID.')
+            return
+        }
+
+        if (
+            hasUnsavedDraft &&
+            !window.confirm(
+                'Opening this campaign will replace your unsaved draft. Continue?',
+            )
+        ) {
             return
         }
 
@@ -225,9 +237,7 @@ function App() {
 
                     <span>
             SendFlow
-            <span className="brand-caption">
-              CAMPAIGN WORKSPACE
-            </span>
+            <span className="brand-caption">CAMPAIGN WORKSPACE</span>
           </span>
                 </a>
 
@@ -236,7 +246,9 @@ function App() {
                 <nav aria-label="Main navigation">
                     <button
                         type="button"
-                        className={`nav-item ${page === 'overview' ? 'active' : ''}`}
+                        className={`nav-item ${
+                            page === 'overview' || savedCampaign !== null ? 'active' : ''
+                        }`}
                         aria-current={page === 'overview' ? 'page' : undefined}
                         disabled={busy}
                         onClick={showOverview}
@@ -257,7 +269,7 @@ function App() {
                         onClick={openComposer}
                     >
                         <span aria-hidden="true">+</span>
-                        New campaign
+                        {hasUnsavedDraft ? 'Continue draft' : 'New campaign'}
                     </button>
                 </nav>
 
@@ -293,28 +305,18 @@ function App() {
                       : 'Compose'}
           </span>
 
-                    <span className="environment-badge">
-            Local workspace
-          </span>
+                    <span className="environment-badge">Local workspace</span>
                 </header>
 
                 <main id="main-content" tabIndex={-1}>
-                    {page === 'overview' && (
-                        <CampaignListPanel
-                            opening={busy}
-                            onOpen={(id) => void openCampaignById(id)}
-                        />
-                    )}
                     {page === 'overview' ? (
                         <>
                             <div className="page-heading">
                                 <div>
-                                    <p className="eyebrow">
-                                        MAKE EVERY MESSAGE COUNT
-                                    </p>
+                                    <p className="eyebrow">CAMPAIGN WORKSPACE</p>
                                     <h1>Your campaigns.</h1>
                                     <p className="muted">
-                                        A simple place to prepare, send and follow your emails.
+                                        Create messages, manage recipient imports and follow delivery.
                                     </p>
                                 </div>
 
@@ -325,80 +327,39 @@ function App() {
                                     onClick={openComposer}
                                 >
                                     <span aria-hidden="true">+</span>
-                                    New campaign
+                                    {hasUnsavedDraft ? 'Continue draft' : 'New campaign'}
                                 </button>
                             </div>
 
-                            <section
-                                className="welcome-panel"
-                                aria-labelledby="welcome-title"
-                            >
-                                <div>
-                  <span className="pill">
-                    FROM MESSAGE TO DELIVERY
-                  </span>
+                            {hasUnsavedDraft && (
+                                <p className="feedback draft-reminder" role="status">
+                                    You have an unsaved draft. Use Continue draft to resume it.
+                                    Refreshing the page will discard unsaved text.
+                                </p>
+                            )}
 
-                                    <h2 id="welcome-title">
-                                        A thoughtful send.
-                                        <br />
-                                        A clear workflow.
-                                    </h2>
+                            {openingCampaign && (
+                                <p className="dashboard-notice" role="status">
+                                    Opening campaign...
+                                </p>
+                            )}
 
-                                    <p>
-                                        Bring your message and recipient list together.
-                                        Review your import, then follow delivery progress.
-                                    </p>
-
-                                    <button
-                                        type="button"
-                                        className="button dark"
-                                        disabled={busy}
-                                        onClick={openComposer}
-                                    >
-                                        Prepare a campaign
-                                        <span aria-hidden="true">{'\u2197'}</span>
-                                    </button>
+                            {openError && (
+                                <div
+                                    className="feedback error-feedback dashboard-notice"
+                                    role="alert"
+                                >
+                                    {openError}
                                 </div>
+                            )}
 
-                                <ol className="workflow">
-                                    <li>
-                                        <span>01</span>
-                                        <div>
-                                            <strong>Compose</strong>
-                                            <p>Give your message a subject and a voice.</p>
-                                        </div>
-                                    </li>
+                            <CampaignListPanel
+                                opening={busy}
+                                onOpen={(id) => void openCampaignById(id)}
+                            />
 
-                                    <li>
-                                        <span>02</span>
-                                        <div>
-                                            <strong>Add recipients</strong>
-                                            <p>Upload a CSV and review import results.</p>
-                                        </div>
-                                    </li>
-
-                                    <li>
-                                        <span>03</span>
-                                        <div>
-                                            <strong>Send &amp; track</strong>
-                                            <p>
-                                                Start your campaign and follow its progress.
-                                            </p>
-                                        </div>
-                                    </li>
-                                </ol>
-                            </section>
-
-                            <section
-                                className="panel campaign-panel"
-                                aria-labelledby="campaigns-title"
-                            >
-                                <div className="panel-heading">
-                                    <h2 id="campaigns-title">Campaign overview</h2>
-                                    <span className="subtle-label">
-                    Your sending workspace
-                  </span>
-                                </div>
+                            <details className="panel campaign-id-panel">
+                                <summary>Open a campaign by ID</summary>
 
                                 <form
                                     className="editor"
@@ -406,7 +367,7 @@ function App() {
                                     aria-busy={openingCampaign}
                                 >
                                     <label htmlFor="existing-campaign-id">
-                                        Open an existing campaign
+                                        Campaign ID
                                     </label>
 
                                     <input
@@ -420,13 +381,13 @@ function App() {
                                             setCampaignIdToOpen(event.target.value)
                                             setOpenError('')
                                         }}
-                                        placeholder="Enter campaign ID, e.g. 6"
+                                        placeholder="e.g. 6"
                                         disabled={busy}
+                                        aria-describedby="campaign-id-help"
                                     />
 
-                                    <p className="draft-note">
-                                        Open a draft to add recipients, or a running/completed
-                                        campaign to view delivery progress.
+                                    <p className="draft-note" id="campaign-id-help">
+                                        Use this shortcut when you already know the campaign ID.
                                     </p>
 
                                     <div className="editor-actions">
@@ -438,64 +399,8 @@ function App() {
                                             {openingCampaign ? 'Opening...' : 'Open campaign'}
                                         </button>
                                     </div>
-
-                                    {openError && (
-                                        <p
-                                            className="feedback error-feedback"
-                                            role="alert"
-                                        >
-                                            {openError}
-                                        </p>
-                                    )}
                                 </form>
-
-                                <div className="empty-state">
-                                    <div className="envelope" aria-hidden="true">
-                                        {'\u2709'}
-                                    </div>
-
-                                    {savedCampaign ? (
-                                        <>
-                                            <h3>Your campaign</h3>
-                                            <p>
-                                                {savedCampaign.name}
-                                                <br />
-                                                ID: {savedCampaign.id}
-                                                {' / '}
-                                                Current status: {savedCampaign.status}
-                                                <br />
-                                                Browse your saved campaigns in the list above.
-                                            </p>
-
-                                            <button
-                                                type="button"
-                                                className="button secondary"
-                                                disabled={busy}
-                                                onClick={() => setPage('compose')}
-                                            >
-                                                View campaign
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <h3>Your next campaign starts here</h3>
-                                            <p>
-                                                Prepare a new message or open an existing campaign
-                                                using its ID.
-                                            </p>
-
-                                            <button
-                                                type="button"
-                                                className="button secondary"
-                                                disabled={busy}
-                                                onClick={openComposer}
-                                            >
-                                                Write a message
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </section>
+                            </details>
                         </>
                     ) : (
                         <>
@@ -543,17 +448,12 @@ function App() {
                                             : 'Save your message as a draft before adding recipients.'}
                                     </p>
 
-                                    <form
-                                        onSubmit={handleSave}
-                                        aria-busy={isSaving}
-                                    >
+                                    <form onSubmit={handleSave} aria-busy={isSaving}>
                                         <fieldset
                                             className="editor-fields"
                                             disabled={busy || savedCampaign !== null}
                                         >
-                                            <label htmlFor="campaign-name">
-                                                Campaign name
-                                            </label>
+                                            <label htmlFor="campaign-name">Campaign name</label>
 
                                             <input
                                                 id="campaign-name"
@@ -568,9 +468,7 @@ function App() {
                                                 placeholder="e.g. October placement updates"
                                             />
 
-                                            <label htmlFor="email-subject">
-                                                Email subject
-                                            </label>
+                                            <label htmlFor="email-subject">Email subject</label>
 
                                             <input
                                                 id="email-subject"
@@ -585,9 +483,7 @@ function App() {
                                                 placeholder="What should your recipients know?"
                                             />
 
-                                            <label htmlFor="email-message">
-                                                Message
-                                            </label>
+                                            <label htmlFor="email-message">Message</label>
 
                                             <textarea
                                                 id="email-message"
@@ -612,19 +508,13 @@ function App() {
                                         </fieldset>
 
                                         {saveError && (
-                                            <div
-                                                className="feedback error-feedback"
-                                                role="alert"
-                                            >
+                                            <div className="feedback error-feedback" role="alert">
                                                 {saveError}
                                             </div>
                                         )}
 
                                         {savedCampaign && (
-                                            <div
-                                                className="feedback success-feedback"
-                                                role="status"
-                                            >
+                                            <div className="feedback success-feedback" role="status">
                                                 <strong>Campaign stored on server.</strong>
 
                                                 <p>
@@ -657,9 +547,7 @@ function App() {
                                                     className="button primary"
                                                     disabled={busy}
                                                 >
-                                                    {isSaving
-                                                        ? 'Saving campaign...'
-                                                        : 'Save campaign'}
+                                                    {isSaving ? 'Saving campaign...' : 'Save campaign'}
                                                 </button>
                                             )}
                                         </div>
@@ -695,9 +583,7 @@ function App() {
                                             </div>
                                         </div>
 
-                                        <h3>
-                                            {subject.trim() || 'Your subject appears here'}
-                                        </h3>
+                                        <h3>{subject.trim() || 'Your subject appears here'}</h3>
 
                                         <div
                                             className={`email-body ${message ? '' : 'placeholder'}`}
@@ -708,10 +594,7 @@ function App() {
                                     </div>
 
                                     <div className="preview-caption">
-                                        <strong>
-                                            {name.trim() || 'Untitled campaign'}
-                                        </strong>
-
+                                        <strong>{name.trim() || 'Untitled campaign'}</strong>
                                         <p>
                                             Text preview. Final appearance can vary by email client.
                                         </p>
