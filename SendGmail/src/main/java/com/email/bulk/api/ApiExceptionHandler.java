@@ -16,6 +16,8 @@ import com.email.bulk.exception.RecipientImportNotFoundException;
 import com.email.bulk.exception.CampaignConflictException;
 import com.email.bulk.exception.InvalidCampaignListRequestException;
 import com.email.bulk.exception.InvalidImportHistoryRequestException;
+import com.email.bulk.exception.InvalidRegistrationException;
+import com.email.bulk.exception.RegistrationConflictException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -133,6 +135,28 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(new ApiErrorResponse(
                         HttpStatus.BAD_REQUEST.value(),
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InvalidRegistrationException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidRegistration(
+            InvalidRegistrationException exception) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiErrorResponse(
+                        400,
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(RegistrationConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleRegistrationConflict(
+            RegistrationConflictException exception) {
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiErrorResponse(
+                        409,
                         exception.getMessage()
                 ));
     }
