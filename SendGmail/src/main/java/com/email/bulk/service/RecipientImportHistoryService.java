@@ -8,20 +8,22 @@ import com.email.bulk.repository.CampaignRepository;
 import com.email.bulk.repository.RecipientImportRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.email.bulk.exception.CampaignNotFoundException;
+import com.email.bulk.repository.CampaignRepository;
 
 import java.util.List;
 
 @Service
 public class RecipientImportHistoryService {
 
-    private final CampaignRepository campaignRepository;
+    private final CampaignAccessService campaignAccessService;
     private final RecipientImportRepository importRepository;
 
     public RecipientImportHistoryService(
-            CampaignRepository campaignRepository,
+            CampaignAccessService campaignAccessService,
             RecipientImportRepository importRepository) {
 
-        this.campaignRepository = campaignRepository;
+        this.campaignAccessService = campaignAccessService;
         this.importRepository = importRepository;
     }
 
@@ -43,10 +45,7 @@ public class RecipientImportHistoryService {
             );
         }
 
-        campaignRepository.findById(campaignId)
-                .orElseThrow(
-                        () -> new CampaignNotFoundException(campaignId)
-                );
+        campaignAccessService.requireOwner(campaignId);
 
         List<RecipientImportStatusResponse> fetched =
                 importRepository.findHistory(

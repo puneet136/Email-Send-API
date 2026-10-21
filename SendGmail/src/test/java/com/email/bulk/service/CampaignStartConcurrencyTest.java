@@ -10,6 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import com.email.bulk.repository.UserAccountRepository;
+import com.email.bulk.support.TestJwtAuthentication;
+import java.util.UUID;
 
 import java.util.List;
 import java.util.concurrent.*;
@@ -34,6 +37,11 @@ class CampaignStartConcurrencyTest {
 
     private Long campaignId;
 
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    private Long ownerUserId;
+
     @BeforeEach
     void setUp() {
 
@@ -45,7 +53,14 @@ class CampaignStartConcurrencyTest {
                 )
         );
 
-        campaignId = campaignRepository.insert(
+        ownerUserId = userAccountRepository.insert(
+                "Concurrent start owner",
+                "concurrent-" + UUID.randomUUID() + "@example.com",
+                "unused-test-password-hash"
+        );
+
+        campaignId = campaignRepository.insertOwned(
+                ownerUserId,
                 "Concurrent start test",
                 "Test subject",
                 "Test body"
@@ -68,19 +83,26 @@ class CampaignStartConcurrencyTest {
     @AfterEach
     void cleanUp() {
 
-        if (campaignId == null) {
-            return;
+        TestJwtAuthentication.clear();
+
+        if (campaignId != null) {
+            jdbcTemplate.update(
+                    "DELETE FROM email_job WHERE campaign_id = ?",
+                    campaignId
+            );
+
+            jdbcTemplate.update(
+                    "DELETE FROM campaign WHERE id = ?",
+                    campaignId
+            );
         }
 
-        jdbcTemplate.update(
-                "DELETE FROM email_job WHERE campaign_id = ?",
-                campaignId
-        );
-
-        jdbcTemplate.update(
-                "DELETE FROM campaign WHERE id = ?",
-                campaignId
-        );
+        if (ownerUserId != null) {
+            jdbcTemplate.update(
+                    "DELETE FROM app_user WHERE id = ?",
+                    ownerUserId
+            );
+        }
     }
 
     @Test
@@ -94,20 +116,27 @@ class CampaignStartConcurrencyTest {
         try {
             Callable<String> request = () -> {
 
-                ready.countDown();
-
-                if (!start.await(5, TimeUnit.SECONDS)) {
-                    throw new IllegalStateException(
-                            "Timed out waiting for start signal"
-                    );
-                }
-
                 try {
-                    campaignStartService.start(campaignId);
-                    return "STARTED";
+                    TestJwtAuthentication.authenticate(ownerUserId);
 
-                } catch (CampaignConflictException exception) {
-                    return "CONFLICT";
+                    ready.countDown();
+
+                    if (!start.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException(
+                                "Timed out waiting for start signal"
+                        );
+                    }
+
+                    try {
+                        campaignStartService.start(campaignId);
+                        return "STARTED";
+
+                    } catch (CampaignConflictException exception) {
+                        return "CONFLICT";
+                    }
+
+                } finally {
+                    TestJwtAuthentication.clear();
                 }
             };
 

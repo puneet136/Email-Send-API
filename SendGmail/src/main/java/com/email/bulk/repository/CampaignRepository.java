@@ -262,4 +262,150 @@ public class CampaignRepository {
                 parameters
         );
     }
+
+    public long insertOwned(
+            long ownerUserId,
+            String name,
+            String subject,
+            String message) {
+
+        if (ownerUserId <= 0) {
+            throw new IllegalArgumentException(
+                    "Owner user ID must be positive"
+            );
+        }
+
+        String sql = """
+            INSERT INTO campaign (
+                owner_user_id,
+                name,
+                subject,
+                body,
+                status
+            )
+            VALUES (?, ?, ?, ?, 'DRAFT')
+            """;
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        int inserted = jdbcTemplate.update(connection -> {
+
+            PreparedStatement statement = connection.prepareStatement(
+                    sql,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+
+            statement.setLong(1, ownerUserId);
+            statement.setString(2, name);
+            statement.setString(3, subject);
+            statement.setString(4, message);
+
+            return statement;
+
+        }, keyHolder);
+
+        Number generatedId = keyHolder.getKey();
+
+        if (inserted != 1 || generatedId == null) {
+            throw new IllegalStateException(
+                    "Campaign creation did not return an ID"
+            );
+        }
+
+        return generatedId.longValue();
+    }
+
+    public Optional<CampaignDetailResponse> findOwnedById(
+            long campaignId,
+            long ownerUserId) {
+
+        String sql = """
+            SELECT id, name, subject, body, status
+            FROM campaign
+            WHERE id = ?
+              AND owner_user_id = ?
+            """;
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> new CampaignDetailResponse(
+                        rs.getLong("id"),
+                        rs.getString("name"),
+                        rs.getString("subject"),
+                        rs.getString("body"),
+                        rs.getString("status")
+                ),
+                campaignId,
+                ownerUserId
+        ).stream().findFirst();
+    }
+
+    public List<CampaignListItemResponse> findOwnedPage(
+            long ownerUserId,
+            long beforeId,
+            int fetchLimit) {
+
+        if (ownerUserId <= 0) {
+            throw new IllegalArgumentException(
+                    "Owner user ID must be positive"
+            );
+        }
+
+        if (beforeId < 0) {
+            throw new IllegalArgumentException(
+                    "Campaign cursor must not be negative"
+            );
+        }
+
+        if (fetchLimit < 1 || fetchLimit > 101) {
+            throw new IllegalArgumentException(
+                    "Fetch limit must be between 1 and 101"
+            );
+        }
+
+        String sql = """
+            SELECT id, name, subject, status
+            FROM campaign
+            WHERE owner_user_id = ?
+            """
+                + (beforeId == 0 ? "" : " AND id < ? ")
+                + " ORDER BY id DESC LIMIT ?";
+
+        Object[] parameters = beforeId == 0
+                ? new Object[]{ownerUserId, fetchLimit}
+                : new Object[]{ownerUserId, beforeId, fetchLimit};
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> new CampaignListItemResponse(
+                        rs.getLong("id"),
+                        rs.getString("name"),
+                        rs.getString("subject"),
+                        rs.getString("status")
+                ),
+                parameters
+        );
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<String> lockOwnedStatus(
+            long campaignId,
+            long ownerUserId) {
+
+        String sql = """
+        SELECT status
+        FROM campaign
+        WHERE id = ?
+          AND owner_user_id = ?
+        FOR UPDATE
+        """;
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNumber) -> rs.getString("status"),
+                campaignId,
+                ownerUserId
+        ).stream().findFirst();
+    }
+
 }

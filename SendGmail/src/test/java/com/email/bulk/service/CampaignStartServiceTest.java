@@ -15,6 +15,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
+import com.email.bulk.repository.UserAccountRepository;
+import com.email.bulk.support.TestJwtAuthentication;
+import org.junit.jupiter.api.AfterEach;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -41,6 +44,11 @@ class CampaignStartServiceTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    private long ownerUserId;
+
     @BeforeEach
     void verifyTestConfiguration() {
 
@@ -51,6 +59,18 @@ class CampaignStartServiceTest {
                         String.class
                 )
         );
+        ownerUserId = userAccountRepository.insert(
+                "Start test owner",
+                "start-" + UUID.randomUUID() + "@example.com",
+                "unused-test-password-hash"
+        );
+
+        TestJwtAuthentication.authenticate(ownerUserId);
+    }
+
+    @AfterEach
+    void clearAuthentication() {
+        TestJwtAuthentication.clear();
     }
 
     @Test
@@ -195,7 +215,8 @@ class CampaignStartServiceTest {
 
     private long createCampaign() {
 
-        return campaignRepository.insert(
+        return campaignRepository.insertOwned(
+                ownerUserId,
                 "Campaign start integration test",
                 "Test subject",
                 "Test message"

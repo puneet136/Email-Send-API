@@ -18,6 +18,7 @@ import com.email.bulk.exception.InvalidCampaignListRequestException;
 import com.email.bulk.exception.InvalidImportHistoryRequestException;
 import com.email.bulk.exception.InvalidRegistrationException;
 import com.email.bulk.exception.RegistrationConflictException;
+import com.email.bulk.exception.InvalidCredentialsException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -157,6 +158,17 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiErrorResponse(
                         409,
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException exception) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiErrorResponse(
+                        401,
                         exception.getMessage()
                 ));
     }

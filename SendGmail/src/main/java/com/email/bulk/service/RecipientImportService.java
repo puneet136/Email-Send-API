@@ -1,9 +1,7 @@
 package com.email.bulk.service;
 
 import com.email.bulk.api.dto.RecipientImportResponse;
-import com.email.bulk.exception.CampaignNotFoundException;
 import com.email.bulk.exception.InvalidImportFileException;
-import com.email.bulk.repository.CampaignRepository;
 import com.email.bulk.repository.RecipientImportRepository;
 import com.email.bulk.storage.ImportFileStorage;
 import org.slf4j.Logger;
@@ -26,20 +24,20 @@ public class RecipientImportService {
     private static final Logger log =
             LoggerFactory.getLogger(RecipientImportService.class);
 
-    private final CampaignRepository campaignRepository;
+    private final CampaignAccessService campaignAccessService;
     private final RecipientImportRepository importRepository;
     private final ImportFileStorage fileStorage;
     private final TransactionTemplate transactionTemplate;
     private final CampaignStateService campaignStateService;
 
     public RecipientImportService(
-            CampaignRepository campaignRepository,
+            CampaignAccessService campaignAccessService,
             RecipientImportRepository importRepository,
             ImportFileStorage fileStorage,
             PlatformTransactionManager transactionManager,
             CampaignStateService campaignStateService) {
 
-        this.campaignRepository = campaignRepository;
+        this.campaignAccessService = campaignAccessService;
         this.importRepository = importRepository;
         this.fileStorage = fileStorage;
         this.campaignStateService = campaignStateService;
@@ -58,11 +56,7 @@ public class RecipientImportService {
 
         String originalFilename = validateFile(file);
 
-        // Early existence check before storing the uploaded file.
-        campaignRepository.findById(campaignId)
-                .orElseThrow(
-                        () -> new CampaignNotFoundException(campaignId)
-                );
+        campaignAccessService.requireOwner(campaignId);
 
         String storedFilename = fileStorage.storeCsv(file);
 

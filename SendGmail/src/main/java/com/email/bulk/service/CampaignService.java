@@ -17,17 +17,25 @@ import java.util.List;
 public class CampaignService {
 
     private final CampaignRepository campaignRepository;
+    private final CurrentUserService currentUserService;
 
-    public CampaignService(CampaignRepository campaignRepository) {
+    public CampaignService(
+            CampaignRepository campaignRepository,
+            CurrentUserService currentUserService) {
+
         this.campaignRepository = campaignRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
     public CampaignResponse create(CreateCampaignRequest request) {
 
+        long ownerUserId = currentUserService.requireUserId();
+
         String name = request.name().strip();
 
-        long id = campaignRepository.insert(
+        long id = campaignRepository.insertOwned(
+                ownerUserId,
                 name,
                 request.subject(),
                 request.message()
@@ -39,12 +47,16 @@ public class CampaignService {
     @Transactional(readOnly = true)
     public CampaignDetailResponse getById(long id) {
 
-        return campaignRepository.findById(id)
+        long ownerUserId = currentUserService.requireUserId();
+
+        return campaignRepository.findOwnedById(id, ownerUserId)
                 .orElseThrow(() -> new CampaignNotFoundException(id));
     }
 
     @Transactional(readOnly = true)
     public CampaignListResponse list(long beforeId, int limit) {
+
+        long ownerUserId = currentUserService.requireUserId();
 
         if (beforeId < 0) {
             throw new InvalidCampaignListRequestException(
@@ -58,9 +70,12 @@ public class CampaignService {
             );
         }
 
-        // Fetch one extra record to determine whether another page exists.
         List<CampaignListItemResponse> fetched =
-                campaignRepository.findPage(beforeId, limit + 1);
+                campaignRepository.findOwnedPage(
+                        ownerUserId,
+                        beforeId,
+                        limit + 1
+                );
 
         boolean hasMore = fetched.size() > limit;
 

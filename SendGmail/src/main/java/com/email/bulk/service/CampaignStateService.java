@@ -11,17 +11,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class CampaignStateService {
 
     private final CampaignRepository campaignRepository;
+    private final CurrentUserService currentUserService;
 
     public CampaignStateService(
-            CampaignRepository campaignRepository) {
+            CampaignRepository campaignRepository,
+            CurrentUserService currentUserService) {
 
         this.campaignRepository = campaignRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockAndRequireDraft(long campaignId) {
 
-        String status = campaignRepository.lockStatus(campaignId)
+        long ownerUserId = currentUserService.requireUserId();
+
+        String status = campaignRepository
+                .lockOwnedStatus(campaignId, ownerUserId)
                 .orElseThrow(
                         () -> new CampaignNotFoundException(campaignId)
                 );
